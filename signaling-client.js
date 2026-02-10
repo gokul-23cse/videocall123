@@ -15,11 +15,16 @@ class SignalingClient {
         };
     }
 
-    connect(url = `ws://${window.location.host}`) {
+    connect(url = null) {
         return new Promise((resolve, reject) => {
             try {
-                console.log(`🔌 Connecting to signaling server: ${url}`);
-                this.ws = new WebSocket(url);
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                let wsUrl = url || `${protocol}//${window.location.host}`;
+                if (window.location.protocol === 'https:' && wsUrl.startsWith('ws://')) {
+                    wsUrl = wsUrl.replace(/^ws:/, 'wss:');
+                }
+                console.log(`🔌 Connecting to signaling server: ${wsUrl}`);
+                this.ws = new WebSocket(wsUrl);
 
                 // Add connection timeout
                 const timeout = setTimeout(() => {
