@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Meet - Professional Calling</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Welcome Screen -->
+    <div class="welcome-container" id="welcomeScreen">
+        <div class="welcome-card">
+            <div class="welcome-logo">
+                <i class="fas fa-video"></i>
+            </div>
+            <h1>Video Meet</h1>
+            <p class="welcome-subtitle">Crystal clear video calls</p>
+            
+            <div class="welcome-actions">
+                <button id="createMeetingBtn" class="btn btn-lg btn-blue">
+                    <i class="fas fa-plus"></i> New Meeting
+                </button>
+                <div class="divider-text">or</div>
+                <input type="text" id="roomInput" placeholder="Enter meeting code" class="meeting-code-input">
+                <button id="joinRoomBtn" class="btn btn-lg btn-blue">
+                    <i class="fas fa-sign-in-alt"></i> Join Meeting
+                </button>
+            </div>
+            
+            <div id="meetingLink" class="meeting-code-box" style="display: none;">
+                <p>Your meeting code:</p>
+                <code id="meetingCode"></code>
+                <button id="copyLinkBtn" class="btn btn-sm">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Call Screen -->
+    <div class="call-container" id="callContainer" style="display: none;">        <!-- Debug overlay -->
+        <div id="debugOverlay" style="position: fixed; top: 100px; right: 20px; background: rgba(0,0,0,0.9); color: #0f0; padding: 12px 16px; border-radius: 4px; font-family: monospace; font-size: 12px; max-width: 300px; z-index: 9999; max-height: 200px; overflow-y: auto;">
+            <div><strong>📹 DEBUG INFO</strong></div>
+            <div id="debugLocalStream">Local: waiting...</div>
+            <div id="debugRemoteStream">Remote: waiting...</div>
+            <div id="debugVideoElements">Elements: checking...</div>
+        </div>
+        <!-- Top Bar -->
+        <div class="call-header">
+            <div class="meeting-info-bar">
+                <h2 id="meetingTitle">Video Meeting</h2>
+                <span class="meeting-duration" id="callDuration">00:00</span>
+            </div>
+            <div class="participants-info">
+                <span id="participantCount">2 participants</span>
+            </div>
+        </div>
+
+        <!-- Video Grid -->
+        <div class="video-grid-wrapper">
+            <div class="video-grid" id="videoGrid">
+                <!-- Remote videos go here -->
+                <div class="video-tile remote-primary">
+                    <video id="remoteVideo" autoplay playsinline></video>
+                    <div class="video-tile-footer">
+                        <span class="user-name">Guest</span>
+                        <span class="connection-indicator" id="remoteIndicator"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Local video (Picture-in-Picture) -->
+            <div class="local-video-pip">
+                <video id="localVideo" autoplay muted playsinline></video>
+                <div class="pip-footer">
+                    <span class="user-name">You</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Control Bar -->
+        <div class="control-bar">
+            <div class="control-buttons">
+                <button id="toggleAudioBtn" class="control-btn" title="Toggle Microphone">
+                    <i class="fas fa-microphone"></i>
+                    <span class="tooltip">Mute (Ctrl+D)</span>
+                </button>
+                <button id="toggleVideoBtn" class="control-btn" title="Toggle Camera">
+                    <i class="fas fa-video"></i>
+                    <span class="tooltip">Stop camera</span>
+                </button>
+                <button class="control-btn" title="Share Screen" onclick="alert('Screen sharing coming soon')">
+                    <i class="fas fa-share-square"></i>
+                    <span class="tooltip">Share screen</span>
+                </button>
+                <button class="control-btn" title="More Options" onclick="document.getElementById('moreOptions').classList.toggle('show')">
+                    <i class="fas fa-ellipsis-v"></i>
+                    <span class="tooltip">More options</span>
+                </button>
+            </div>
+
+            <button id="endCallBtn" class="control-btn end-call-btn" title="End Call">
+                <i class="fas fa-phone-slash"></i>
+                <span class="tooltip">End call</span>
+            </button>
+
+            <!-- More Options Menu -->
+            <div class="more-options-menu" id="moreOptions">
+                <div class="options-content">
+                    <div class="option-group">
+                        <h4>Settings</h4>
+                        <button class="option-btn">
+                            <i class="fas fa-cog"></i> Camera & Microphone
+                        </button>
+                        <button class="option-btn">
+                            <i class="fas fa-volume-up"></i> Audio Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Info (collapsible) -->
+        <div class="status-panel" id="statusPanel">
+            <div class="status-header">
+                <h3><i class="fas fa-info-circle"></i> Connection Status</h3>
+                <button class="collapse-btn" onclick="document.getElementById('statusPanel').classList.toggle('collapsed')">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            </div>
+            <div class="status-content">
+                <div class="status-item">
+                    <span class="label">Status:</span>
+                    <span id="status" class="value">Connecting...</span>
+                </div>
+                <div class="status-item">
+                    <span class="label">Connection:</span>
+                    <span id="connType" class="value">N/A</span>
+                </div>
+                <div class="status-item">
+                    <span class="label">Remote User:</span>
+                    <span id="remoteUser" class="value">Waiting...</span>
+                </div>
+                <div class="status-item">
+                    <span class="label">ICE State:</span>
+                    <span id="iceState" class="value">N/A</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="modules/ui.js"></script>
+    <script src="modules/roomManager.js"></script>
+    <script src="modules/mediaCapture.js"></script>
+    <script src="modules/peerConnection.js"></script>
+    <script src="modules/networkTraversal.js"></script>
+    <script src="signaling-client.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
