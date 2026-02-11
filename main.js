@@ -157,10 +157,20 @@ class VideoCallApp {
         
         this.localStream = stream;
         
+        // Check if audio-only mode
+        const hasVideo = stream.getVideoTracks().length > 0;
+        const hasAudio = stream.getAudioTracks().length > 0;
+        
         // Attach to video element
         console.log('   Attaching stream to video element...');
         window.uiManager.attachLocalStream(stream);
-        window.uiManager.showStatus('✅ Camera and microphone ready', 'success');
+        
+        if (!hasVideo && hasAudio) {
+            window.uiManager.showStatus('📢 Audio-only mode (camera in use by another tab)', 'warning');
+            window.uiManager.setVideoState(false);
+        } else {
+            window.uiManager.showStatus('✅ Camera and microphone ready', 'success');
+        }
         
         console.log('✅ onStreamReady completed');
     }

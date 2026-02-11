@@ -45,7 +45,21 @@ class MediaCapture {
 
             console.log('📹 Requesting camera and microphone access...');
             
-            this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            try {
+                this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            } catch (error) {
+                // If video fails (camera in use), try audio-only
+                if (error.name === 'NotReadableError' || error.message.includes('Could not start video source')) {
+                    console.warn('⚠️ Camera in use, falling back to audio-only mode');
+                    this.localStream = await navigator.mediaDevices.getUserMedia({
+                        video: false,
+                        audio: constraints.audio || true
+                    });
+                    this.isVideoEnabled = false;
+                } else {
+                    throw error;
+                }
+            }
             
             console.log('✅ Media stream started');
             console.log(`   Video: ${this.localStream.getVideoTracks().length} track(s)`);

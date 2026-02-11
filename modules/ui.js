@@ -170,14 +170,30 @@ class UIManager {
             return;
         }
         
-        this.localVideo.srcObject = stream;
-        const localPlayPromise = this.localVideo.play();
-        if (localPlayPromise && typeof localPlayPromise.catch === 'function') {
-            localPlayPromise.catch(error => {
-                console.warn('⚠️ Local video autoplay blocked:', error.message);
-            });
-        }
         const hasVideo = stream?.getVideoTracks().length > 0;
+        
+        if (hasVideo) {
+            this.localVideo.srcObject = stream;
+            this.localVideo.style.display = 'block';
+            const localPlayPromise = this.localVideo.play();
+            if (localPlayPromise && typeof localPlayPromise.catch === 'function') {
+                localPlayPromise.catch(error => {
+                    console.warn('⚠️ Local video autoplay blocked:', error.message);
+                });
+            }
+        } else {
+            // Audio-only mode - show placeholder
+            this.localVideo.style.display = 'none';
+            const localContainer = this.localVideo.parentElement;
+            if (localContainer && !localContainer.querySelector('.audio-only-indicator')) {
+                const indicator = document.createElement('div');
+                indicator.className = 'audio-only-indicator';
+                indicator.innerHTML = '<i class="fas fa-microphone"></i><br>Audio Only';
+                indicator.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:white;text-align:center;font-size:14px;';
+                localContainer.appendChild(indicator);
+            }
+        }
+        
         const videoTrack = hasVideo ? stream.getVideoTracks()[0]  : null;
         const trackState = videoTrack?.readyState || 'none';
         
@@ -200,18 +216,38 @@ class UIManager {
         }
         
         try {
-            this.remoteVideo.srcObject = stream;
-            const remotePlayPromise = this.remoteVideo.play();
-            if (remotePlayPromise && typeof remotePlayPromise.catch === 'function') {
-                remotePlayPromise.catch(error => {
-                    console.warn('⚠️ Remote video autoplay blocked:', error.message);
-                });
+            const hasVideo = stream?.getVideoTracks().length > 0;
+            
+            if (hasVideo) {
+                this.remoteVideo.srcObject = stream;
+                this.remoteVideo.style.display = 'block';
+                const remotePlayPromise = this.remoteVideo.play();
+                if (remotePlayPromise && typeof remotePlayPromise.catch === 'function') {
+                    remotePlayPromise.catch(error => {
+                        console.warn('⚠️ Remote video autoplay blocked:', error.message);
+                    });
+                }
+                // Remove audio-only indicator if exists
+                const remoteContainer = this.remoteVideo.parentElement;
+                const indicator = remoteContainer?.querySelector('.remote-audio-only-indicator');
+                if (indicator) indicator.remove();
+            } else {
+                // Audio-only mode for remote - show placeholder
+                this.remoteVideo.style.display = 'none';
+                const remoteContainer = this.remoteVideo.parentElement;
+                if (remoteContainer && !remoteContainer.querySelector('.remote-audio-only-indicator')) {
+                    const indicator = document.createElement('div');
+                    indicator.className = 'remote-audio-only-indicator';
+                    indicator.innerHTML = '<i class="fas fa-user"></i><br>Audio Only';
+                    indicator.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:white;text-align:center;font-size:24px;';
+                    remoteContainer.appendChild(indicator);
+                }
             }
+            
             console.log(`✅ srcObject set on video element`);
             console.log(`   Current srcObject: ${this.remoteVideo.srcObject}`);
             console.log(`   Video element readyState: ${this.remoteVideo.readyState}`);
             
-            const hasVideo = stream?.getVideoTracks().length > 0;
             const videoTrack = hasVideo ? stream.getVideoTracks()[0]  : null;
             const trackState = videoTrack?.readyState || 'none';
             
