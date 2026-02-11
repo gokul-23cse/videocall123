@@ -172,7 +172,18 @@ class VideoCallApp {
     }
 
     onMediaError(error) {
-        window.uiManager.showStatus(error, 'error');
+        let errorMessage = error;
+        
+        // Provide better error messages for common scenarios
+        if (error.includes('Permission denied') || error.includes('NotAllowedError')) {
+            errorMessage = 'Camera/microphone access denied. Please allow access in browser settings.';
+        } else if (error.includes('Could not start video source') || error.includes('NotReadableError')) {
+            errorMessage = 'Camera is already in use. Please close other tabs/apps using the camera.';
+        } else if (error.includes('NotFoundError')) {
+            errorMessage = 'No camera or microphone found. Please connect a device.';
+        }
+        
+        window.uiManager.showStatus(errorMessage, 'error');
         console.error('Media error:', error);
     }
 
@@ -406,11 +417,17 @@ class VideoCallApp {
             window.uiManager.showStatus('✅ Call Connected!', 'success');
             this.isCallActive = true;
         } else if (state === 'failed') {
-            window.uiManager.showStatus('❌ Connection failed', 'error');
-            this.cleanup();
+            window.uiManager.showStatus('Connection failed. Please try refreshing the page.', 'error');
+            // Don't auto-cleanup - let user decide
+            console.warn('⚠️ Connection failed but staying in call screen');
         } else if (state === 'closed') {
-            window.uiManager.showStatus('Call ended', 'info');
-            this.cleanup();
+            // Only cleanup if the user explicitly ended the call
+            if (this.isCallActive) {
+                window.uiManager.showStatus('Call ended', 'info');
+                this.cleanup();
+            }
+        } else if (state === 'disconnected') {
+            window.uiManager.showStatus('Connection lost. Reconnecting...', 'warning');
         }
     }
 
