@@ -75,7 +75,14 @@ class PeerConnectionManager {
             // Handle ICE candidates
             peerConnection.onicecandidate = (event) => {
                 if (event.candidate) {
-                    console.log(`❄️ ICE candidate from ${peerId}`);
+                    // Log candidate type for debugging
+                    const candidateStr = event.candidate.candidate;
+                    let candidateType = 'unknown';
+                    if (candidateStr.includes('typ host')) candidateType = 'host (local)';
+                    else if (candidateStr.includes('typ srflx')) candidateType = 'srflx (STUN)';
+                    else if (candidateStr.includes('typ relay')) candidateType = 'relay (TURN)';
+                    
+                    console.log(`❄️ ICE candidate [${candidateType}] from ${peerId}`);
                     
                     if (this.callbacks.onIceCandidate) {
                         this.callbacks.onIceCandidate(peerId, event.candidate);
@@ -101,6 +108,18 @@ class PeerConnectionManager {
                 if (this.callbacks.onIceStateChange) {
                     this.callbacks.onIceStateChange(peerId, peerConnection.iceConnectionState);
                 }
+                
+                // Log additional info for debugging
+                if (peerConnection.iceConnectionState === 'failed') {
+                    console.error(`❌ ICE connection failed for ${peerId}. May need TURN server.`);
+                } else if (peerConnection.iceConnectionState === 'disconnected') {
+                    console.warn(`⚠️ ICE disconnected for ${peerId}. Connection may recover...`);
+                }
+            };
+            
+            // Monitor ICE gathering state
+            peerConnection.onicegatheringstatechange = () => {
+                console.log(`❄️ ICE gathering state (${peerId}): ${peerConnection.iceGatheringState}`);
             };
 
             // Handle signaling state changes

@@ -23,9 +23,23 @@ class NetworkTraversal {
             'stun:stun.services.mozilla.com:3478'
         ];
         
+        // Free TURN servers for cross-network connectivity
         this.turnServers = [
-            // Add public TURN servers if needed
-            // { urls: 'turn:your-turn-server.com', username: 'user', credential: 'pass' }
+            {
+                urls: 'turn:openrelay.metered.ca:80',
+                username: 'openrelayproject',
+                credential: 'openrelayproject'
+            },
+            {
+                urls: 'turn:openrelay.metered.ca:443',
+                username: 'openrelayproject',
+                credential: 'openrelayproject'
+            },
+            {
+                urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                username: 'openrelayproject',
+                credential: 'openrelayproject'
+            }
         ];
         
         this.callbacks = {
