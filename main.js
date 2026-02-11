@@ -262,7 +262,14 @@ class VideoCallApp {
         // Auto-initiate call with deterministic initiator to avoid offer glare
         if (!this.currentRemoteUser && roomUsers.length > 1) {
             const localId = window.signalingClient.clientId;
-            const shouldInitiate = localId && userId ? localId < userId : true;
+            
+            // Only proceed if we have our client ID
+            if (!localId) {
+                console.warn('⚠️ Client ID not yet assigned, deferring call initiation');
+                return;
+            }
+            
+            const shouldInitiate = localId < userId;
             console.log(`🔄 Auto-initiator check (local: ${localId}, remote: ${userId}) => ${shouldInitiate}`);
             if (shouldInitiate) {
                 this.initiateCall(userId);

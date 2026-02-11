@@ -26,21 +26,26 @@ class SignalingClient {
                 console.log(`🔌 Connecting to signaling server: ${wsUrl}`);
                 this.ws = new WebSocket(wsUrl);
 
+                // Store resolve/reject for when we get client ID
+                this._connectResolve = resolve;
+                this._connectReject = reject;
+
                 // Add connection timeout
                 const timeout = setTimeout(() => {
-                    if (this.ws && this.ws.readyState !== WebSocket.OPEN) {
-                        this.ws.close();
-                        reject(new Error('WebSocket connection timeout (10s)'));
+                    if (!this.clientId) {
+                        if (this.ws) this.ws.close();
+                        reject(new Error('WebSocket connection timeout (10s) - client ID not received'));
                     }
                 }, 10000);
+                
+                this._connectTimeout = timeout;
 
                 this.ws.onopen = () => {
-                    clearTimeout(timeout);
-                    console.log('✅ WebSocket connected');
+                    console.log('✅ WebSocket connected, waiting for client ID...');
                     if (this.callbacks.onConnected) {
                         this.callbacks.onConnected();
                     }
-                    resolve();
+                    // Don't resolve yet - wait for clientId in handleMessage
                 };
 
                 this.ws.onmessage = (event) => {
@@ -53,17 +58,24 @@ class SignalingClient {
                 };
 
                 this.ws.onerror = (error) => {
-                    clearTimeout(timeout);
+                    if (this._connectTimeout) clearTimeout(this._connectTimeout);
                     console.error('❌ WebSocket error:', error);
                     if (this.callbacks.onError) {
                         this.callbacks.onError(error);
                     }
-                    reject(error);
+                    if (this._connectReject) {
+                        this._connectReject(error);
+                        this._connectReject = null;
+                    }
                 };
 
                 this.ws.onclose = () => {
-                    clearTimeout(timeout);
+                    if (this._connectTimeout) clearTimeout(this._connectTimeout);
                     console.log('⚠️ WebSocket closed');
+                    if (this._connectReject) {
+                        this._connectReject(new Error('WebSocket closed before connection established'));
+                        this._connectReject = null;
+                    }
                 };
             } catch (error) {
                 reject(error);
@@ -77,7 +89,14 @@ class SignalingClient {
         switch (data.type) {
             case 'connected':
                 this.clientId = data.clientId;
-                console.log('Client ID:', this.clientId);
+                console.log('✅ Client ID assigned:', this.clientId);
+                
+                // Resolve the connect() promise now that we have client ID
+                if (this._connectResolve) {
+                    if (this._connectTimeout) clearTimeout(this._connectTimeout);
+                    this._connectResolve();
+                    this._connectResolve = null;
+                }
                 break;
 
             case 'room-users':
